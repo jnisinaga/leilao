@@ -20,7 +20,7 @@ jobs:
 
       - name: Instalar dependências
         run: |
-          pip install selenium tabulate
+          pip install -r requirements.txt  # Instala todas as dependências listadas no requirements.txt
 
       - name: Instalar Chrome e ChromeDriver
         run: |
