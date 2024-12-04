@@ -18,14 +18,9 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Criar e Ativar Ambiente Virtual
-        run: |
-          python -m venv venv
-          source venv/bin/activate
-
       - name: Instalar dependências
         run: |
-          pip install -r requirements.txt
+          pip install selenium tabulate
 
       - name: Instalar Chrome e ChromeDriver
         run: |
@@ -35,6 +30,4 @@ jobs:
           sudo mv chromedriver /usr/local/bin/
 
       - name: Executar o script
-        run: |
-          source venv/bin/activate  # Garantir que o ambiente virtual esteja ativado
-          python sodre_copart_chrome.py
+        run: python sodre_copart_chrome.py
