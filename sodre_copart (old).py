@@ -7,34 +7,42 @@ from selenium.webdriver.support import expected_conditions as EC
 from tabulate import tabulate
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import chromedriver_autoinstaller
 
-# Instala o ChromeDriver automaticamente
-chromedriver_autoinstaller.install()
+chromedriver_autoinstaller.install()  # Instala o ChromeDriver automaticamente
 
-# Configurações para o Chrome em modo headless
+# Configurações para Chrome Headless
 options = Options()
 options.add_argument("--headless")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
 
-# Inicializa o WebDriver
+# Inicializa o WebDriver com Chrome Headless
 driver = webdriver.Chrome(options=options)
 
-# Função para enviar e-mail
+# Função para enviar o e-mail
 def send_email(subject, body, to_email):
     from_email = "jnisinaga@gmail.com"
-    password = "fwjp hito rner kldv"  # Senha de app do Gmail, se necessário
+    password = "fwjp hito rner kldv"  # Lembre-se de usar a senha de app se necessário
 
     try:
+        # Usando SMTP_SSL para a porta 465, que já é segura
         server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+        server.set_debuglevel(1)  # Habilitar debug para ver detalhes da conexão
+
+        # Fazer login
         server.login(from_email, password)
+
+        # Preparar o e-mail
         msg = MIMEMultipart()
         msg['From'] = from_email
         msg['To'] = to_email
         msg['Subject'] = subject
         msg.attach(MIMEText(body, 'html'))
+
+        # Enviar e-mail
         server.sendmail(from_email, to_email, msg.as_string())
         print("E-mail enviado com sucesso!")
     except Exception as e:
@@ -42,11 +50,12 @@ def send_email(subject, body, to_email):
     finally:
         server.quit()
 
+
+
 # Função para extrair dados do Sodré Santoro
 def get_motos_from_sodre(page_number=1):
     base_url = "https://www.sodresantoro.com.br/veiculos/lotes?lot_category=motos&order=0&page="
     all_motos_data = []
-
     while True:
         url = base_url + str(page_number)
         driver.get(url)
@@ -60,18 +69,17 @@ def get_motos_from_sodre(page_number=1):
             links = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//div[contains(@id, "card-")]/div/div[1]/div[1]/div[1]/div[1]/a')))
 
             if not nomes:
-                print("Nenhuma moto encontrada no Sodré Santoro. Finalizando busca.")
                 break
 
             for nome, lance, ano, local, link in zip(nomes, lances, anos, locais, links):
                 moto = [nome.text, lance.text, ano.text, local.text, link.get_attribute('href')]
                 all_motos_data.append(moto)
+                print(tabulate([moto], headers=["Nome", "Lance", "Ano", "Local", "Link"], tablefmt="grid"))
 
             page_number += 1
             time.sleep(2)
-
         except Exception as e:
-            print(f"Erro ao buscar dados do Sodré Santoro: {e}")
+            print(f"Erro: {e}")
             break
 
     return all_motos_data
@@ -93,23 +101,27 @@ def get_motos_from_copart():
         for nome, lance, ano, local, link in zip(nomes, lances, anos, locais, links):
             moto = [nome.text, lance.text, ano.text, local.text, link.get_attribute('href')]
             all_motos_data.append(moto)
+            
+            # Imprime cada moto encontrada no Copart
+            print(tabulate([moto], headers=["Nome", "Lance", "Ano", "Local", "Link"], tablefmt="grid"))
 
     except Exception as e:
         print(f"Erro ao buscar dados da Copart: {e}")
 
     return all_motos_data
 
-# Coletar dados de ambos os sites
+
+# Coletar dados de Sodré Santoro e Copart
 sodre_motos = get_motos_from_sodre()
 copart_motos = get_motos_from_copart()
 
-# Filtrar motos Harley do Sodré Santoro
+# Filtrar apenas Harley no Sodré
 harley_sodre_motos = [moto for moto in sodre_motos if 'harley' in moto[0].lower()]
 
-# Combinar motos Harley dos dois sites
+# Combinar as motos Harley de ambos os sites
 combined_motos = harley_sodre_motos + copart_motos
 
-# Enviar e-mail com os dados combinados
+# Enviar e-mail com dados combinados
 if combined_motos:
     table_data = tabulate(combined_motos, headers=["Nome", "Lance", "Ano", "Local", "Link"], tablefmt="html")
     body = f"<p>Abaixo estão as motos Harley Davidson encontradas nos leilões:</p>{table_data}"
